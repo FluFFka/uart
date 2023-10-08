@@ -18,6 +18,7 @@ module transmitter #(
     assign t_cell = matrix[row][col];
 
     integer curr_bit;
+    reg parity_check;
 
     always @(posedge clk, posedge rst) begin
         if (rst) begin
@@ -31,6 +32,8 @@ module transmitter #(
             matrix[1][3] <= 0;
             busy <= 0;
             tx <= 1;
+            parity_check <= 0;
+            curr_bit <= 0;
         end
         if (clk) begin
             if (busy == 0) begin
@@ -44,13 +47,17 @@ module transmitter #(
                 end
             end else begin
                 if (action == 2) begin
-                    if (curr_bit == W) begin
-                        // parity check (and curr_bit == W + 1)
+                    if ((curr_bit == W && PAR == 0) || (curr_bit == W + 1 && PAR != 0)) begin
                         tx <= 1;    // stop bit
                         busy <= 0;
                         curr_bit <= 0;
+                    end if (curr_bit == W && PAR != 0) begin
+                        if (PAR == 1) tx <= parity_check;
+                        if (PAR == 2) tx <= ~parity_check;
+                        curr_bit <= curr_bit + 1;
                     end else begin
                         tx <= matrix[row][col][curr_bit];
+                        parity_check <= parity_check ^ tx;
                         curr_bit <= curr_bit + 1;
                     end
                 end
