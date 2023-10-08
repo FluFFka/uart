@@ -12,12 +12,20 @@ module main #(
     output [W-1:0] t_cell, output [W-1:0] r_cell    
 );
 
-    always @(posedge clk, posedge rst) begin
-        if (rst) begin
-            
-        end
-    end
+    wire x;
+    
+    transmitter #(
+        .W(W), .DIV(DIV), .PAR(PAR)
+    ) t_sch (
+        .clk(clk), .rst(rst), .d(d), .row(row), .col(col), .action(action),
+        .tx(x), .busy(t_busy), .t_cell(t_cell)
+    );
 
-    assign t_busy = clk;
+    receiver #(
+        .W(W), .DIV(DIV), .PAR(PAR)
+    ) r_sch (
+        .clk(clk), .rst(rst), .row(row), .col(col), .action(action), .rx(x),
+        .busy(r_busy), .r_cell(r_cell)
+    );
 
 endmodule
