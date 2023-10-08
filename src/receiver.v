@@ -17,6 +17,11 @@ module receiver #(
 
     assign r_cell = matrix[row][col];
     
+    integer curr_row;
+    integer end_row;
+    integer curr_col;
+    integer start_col;
+    integer end_col;
     integer curr_bit;
     reg parity_check;
 
@@ -33,27 +38,88 @@ module receiver #(
             matrix[1][2] <= 0;
             matrix[1][3] <= 0;
             busy <= 0;
-            parity_check <= 0;
         end
         if (clk) begin
             if (busy == 0) begin
                 if (rx == 0) begin
                     busy <= 1;
+                    parity_check <= 0;
+                    if (action == 2) begin
+                        curr_row <= row;
+                        end_row <= row;
+                        start_col <= col;
+                        curr_col <= col;
+                        end_col <= col;
+                    end
+                    if (action == 3) begin
+                        curr_row <= row;
+                        end_row <= row;
+                        start_col <= 0;
+                        curr_col <= 0;
+                        end_col <= 3;
+                    end
+                    if (action == 4) begin
+                        curr_row <= 0;
+                        end_row <= 1;
+                        start_col <= col;
+                        curr_col <= col;
+                        end_col <= col;
+                    end
+                    if (action == 5) begin
+                        curr_row <= 0;
+                        end_row <= 1;
+                        start_col <= 0;
+                        curr_col <= 0;
+                        end_col <= 3;
+                    end
                 end
             end else begin
-                if (action == 2) begin
-                    if ((curr_bit == W && PAR == 0) || (curr_bit == W + 1 && PAR != 0)) begin
-                        busy <= 0;
-                        curr_bit <= 0;
-                    end if (curr_bit == W && PAR != 0) begin
+                if ((curr_bit == W || curr_bit == W + 1) && curr_row == end_row && curr_col == end_col) begin
+                    if (curr_bit == W && PAR != 0) begin
                         if (is_msg_correct) begin
-                            matrix[row][col] <= received[row][col];
+                            if (action == 2) matrix[row][col] <= received[row][col];
+                            if (action == 3) begin
+                                matrix[row][0] <= received[row][0];
+                                matrix[row][1] <= received[row][1];
+                                matrix[row][2] <= received[row][2];
+                                matrix[row][3] <= received[row][3];
+                            end
+                            if (action == 4) begin
+                                matrix[0][col] <= received[0][col];
+                                matrix[1][col] <= received[1][col];
+                            end
+                            if (action == 5) begin
+                                matrix[0][0] <= received[0][0];
+                                matrix[0][1] <= received[0][1];
+                                matrix[0][2] <= received[0][2];
+                                matrix[0][3] <= received[0][3];
+                                matrix[1][0] <= received[1][0];
+                                matrix[1][1] <= received[1][1];
+                                matrix[1][2] <= received[1][2];
+                                matrix[1][3] <= received[1][3];
+                            end
                         end
                         curr_bit <= curr_bit + 1;
-                    end else begin
-                        received[row][col][curr_bit] <= rx;
-                        parity_check <= parity_check ^ rx;
+                    end
+                    if (curr_bit == W + 1 || (curr_bit == W && PAR == 0)) begin
+                        busy <= 0;
+                    end
+                end else begin
+                    received[row][col][curr_bit] <= rx;
+                    parity_check <= parity_check ^ rx;
+                    
+                    // next bit
+                    if (curr_bit != W) begin
                         curr_bit <= curr_bit + 1;
+                    end else begin
+                        if (curr_col != end_col) begin
+                            curr_col <= curr_col + 1;
+                            curr_bit <= 0;
+                        end else begin
+                            curr_row <= curr_row + 1;
+                            curr_col <= start_col;
+                            curr_bit <= 0;
+                        end
                     end
                 end
             end

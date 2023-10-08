@@ -17,6 +17,11 @@ module transmitter #(
 
     assign t_cell = matrix[row][col];
 
+    integer curr_row;
+    integer end_row;
+    integer curr_col;
+    integer start_col;
+    integer end_col;
     integer curr_bit;
     reg parity_check;
 
@@ -32,8 +37,6 @@ module transmitter #(
             matrix[1][3] <= 0;
             busy <= 0;
             tx <= 1;
-            parity_check <= 0;
-            curr_bit <= 0;
         end
         if (clk) begin
             if (busy == 0) begin
@@ -41,24 +44,67 @@ module transmitter #(
                     matrix[row][col] <= d;
                     tx <= 1;
                 end
+                if (action == 2) begin
+                    curr_row <= row;
+                    end_row <= row;
+                    start_col <= col;
+                    curr_col <= col;
+                    end_col <= col;
+                end
+                if (action == 3) begin
+                    curr_row <= row;
+                    end_row <= row;
+                    start_col <= 0;
+                    curr_col <= 0;
+                    end_col <= 3;
+                end
+                if (action == 4) begin
+                    curr_row <= 0;
+                    end_row <= 1;
+                    start_col <= col;
+                    curr_col <= col;
+                    end_col <= col;
+                end
+                if (action == 5) begin
+                    curr_row <= 0;
+                    end_row <= 1;
+                    start_col <= 0;
+                    curr_col <= 0;
+                    end_col <= 3;
+                end
                 if (action == 2 || action == 3 || action == 4 || action == 5) begin
+                    curr_bit <= 0;
                     busy <= 1;
                     tx <= 0;    // start bit
+                    parity_check <= 0;
                 end
             end else begin
-                if (action == 2) begin
-                    if ((curr_bit == W && PAR == 0) || (curr_bit == W + 1 && PAR != 0)) begin
-                        tx <= 1;    // stop bit
-                        busy <= 0;
-                        curr_bit <= 0;
-                    end if (curr_bit == W && PAR != 0) begin
+                if ((curr_bit == W || curr_bit == W + 1) && curr_row == end_row && curr_col == end_col) begin
+                    if (curr_bit == W && PAR != 0) begin
                         if (PAR == 1) tx <= parity_check;
                         if (PAR == 2) tx <= ~parity_check;
                         curr_bit <= curr_bit + 1;
-                    end else begin
-                        tx <= matrix[row][col][curr_bit];
-                        parity_check <= parity_check ^ tx;
+                    end
+                    if (curr_bit == W + 1 || (curr_bit == W && PAR == 0)) begin
+                        tx <= 1;    // stop bit
+                        busy <= 0;
+                    end
+                end else begin
+                    tx <= matrix[curr_row][curr_col][curr_bit];
+                    parity_check <= parity_check ^ tx;
+                    
+                    // next bit
+                    if (curr_bit != W) begin
                         curr_bit <= curr_bit + 1;
+                    end else begin
+                        if (curr_col != end_col) begin
+                            curr_col <= curr_col + 1;
+                            curr_bit <= 0;
+                        end else begin
+                            curr_row <= curr_row + 1;
+                            curr_col <= start_col;
+                            curr_bit <= 0;
+                        end
                     end
                 end
             end
