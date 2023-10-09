@@ -17,6 +17,8 @@ module receiver #(
 
     assign r_cell = matrix[row][col];
     
+    reg start_bit_state;
+    integer ins_clk;
     integer curr_row;
     integer end_row;
     integer curr_col;
@@ -44,6 +46,8 @@ module receiver #(
                 if (rx == 0) begin
                     busy <= 1;
                     parity_check <= 0;
+                    ins_clk <= 0;
+                    start_bit_state <= 1;
                     if (action == 2) begin
                         curr_row <= row;
                         end_row <= row;
@@ -74,51 +78,55 @@ module receiver #(
                     end
                 end
             end else begin
-                if ((curr_bit == W || curr_bit == W + 1) && curr_row == end_row && curr_col == end_col) begin
-                    if (curr_bit == W && PAR != 0) begin
-                        if (is_msg_correct) begin
-                            if (action == 2) matrix[row][col] <= received[row][col];
-                            if (action == 3) begin
-                                matrix[row][0] <= received[row][0];
-                                matrix[row][1] <= received[row][1];
-                                matrix[row][2] <= received[row][2];
-                                matrix[row][3] <= received[row][3];
+                ins_clk <= (ins_clk + 1) % DIV;
+                if (ins_clk == DIV / 2) begin
+                    if (start_bit_state) begin
+                        // nothing to do
+                    end else if ((curr_bit == W || curr_bit == W + 1) && curr_row == end_row && curr_col == end_col) begin   // one of end bit states (parity check or stop)
+                        if (curr_bit == W && PAR != 0) begin    // parity_check state
+                            if (is_msg_correct) begin
+                                if (action == 2) matrix[row][col] <= received[row][col];
+                                if (action == 3) begin
+                                    matrix[row][0] <= received[row][0];
+                                    matrix[row][1] <= received[row][1];
+                                    matrix[row][2] <= received[row][2];
+                                    matrix[row][3] <= received[row][3];
+                                end
+                                if (action == 4) begin
+                                    matrix[0][col] <= received[0][col];
+                                    matrix[1][col] <= received[1][col];
+                                end
+                                if (action == 5) begin
+                                    matrix[0][0] <= received[0][0];
+                                    matrix[0][1] <= received[0][1];
+                                    matrix[0][2] <= received[0][2];
+                                    matrix[0][3] <= received[0][3];
+                                    matrix[1][0] <= received[1][0];
+                                    matrix[1][1] <= received[1][1];
+                                    matrix[1][2] <= received[1][2];
+                                    matrix[1][3] <= received[1][3];
+                                end
                             end
-                            if (action == 4) begin
-                                matrix[0][col] <= received[0][col];
-                                matrix[1][col] <= received[1][col];
-                            end
-                            if (action == 5) begin
-                                matrix[0][0] <= received[0][0];
-                                matrix[0][1] <= received[0][1];
-                                matrix[0][2] <= received[0][2];
-                                matrix[0][3] <= received[0][3];
-                                matrix[1][0] <= received[1][0];
-                                matrix[1][1] <= received[1][1];
-                                matrix[1][2] <= received[1][2];
-                                matrix[1][3] <= received[1][3];
-                            end
+                            curr_bit <= curr_bit + 1;
+                        end else if (curr_bit == W + 1 || (curr_bit == W && PAR == 0)) begin    // stop bit state
+                            busy <= 0;
                         end
-                        curr_bit <= curr_bit + 1;
-                    end
-                    if (curr_bit == W + 1 || (curr_bit == W && PAR == 0)) begin
-                        busy <= 0;
-                    end
-                end else begin
-                    received[row][col][curr_bit] <= rx;
-                    parity_check <= parity_check ^ rx;
-                    
-                    // next bit
-                    if (curr_bit != W) begin
-                        curr_bit <= curr_bit + 1;
-                    end else begin
-                        if (curr_col != end_col) begin
-                            curr_col <= curr_col + 1;
-                            curr_bit <= 0;
+                    end else begin  // receive bit state
+                        received[row][col][curr_bit] <= rx;
+                        parity_check <= parity_check ^ rx;
+                        
+                        // next bit
+                        if (curr_bit != W) begin
+                            curr_bit <= curr_bit + 1;
                         end else begin
-                            curr_row <= curr_row + 1;
-                            curr_col <= start_col;
-                            curr_bit <= 0;
+                            if (curr_col != end_col) begin
+                                curr_col <= curr_col + 1;
+                                curr_bit <= 0;
+                            end else begin
+                                curr_row <= curr_row + 1;
+                                curr_col <= start_col;
+                                curr_bit <= 0;
+                            end
                         end
                     end
                 end
