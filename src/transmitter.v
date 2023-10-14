@@ -19,11 +19,11 @@ module transmitter #(
 
     reg start_bit_state;
     integer ins_clk;
-    integer curr_row;
-    integer end_row;
-    integer curr_col;
-    integer start_col;
-    integer end_col;
+    reg curr_row;
+    reg end_row;
+    reg [0:1] curr_col;
+    reg [0:1] start_col;
+    reg [0:1] end_col;
     integer curr_bit;
     reg parity_check;
 
@@ -89,34 +89,56 @@ module transmitter #(
                         start_bit_state <= 0;
                     end
                 end else if ((curr_bit == W || curr_bit == W + 1) && curr_row == end_row && curr_col == end_col) begin   // one of end bit states (parity check or stop)
-                    if (curr_bit == W && PAR != 0) begin    // parity_check bit state
-                        if (PAR == 1) tx <= parity_check;
-                        if (PAR == 2) tx <= ~parity_check;
-                        if (ins_clk == DIV - 1) begin
-                            curr_bit <= curr_bit + 1;
-                        end
-                    end else if (curr_bit == W + 1 || (curr_bit == W && PAR == 0)) begin     // stop bit state
+                    if (PAR == 0) begin // stop bit state
                         tx <= 1;
                         if (ins_clk == DIV - 1) begin
                             busy <= 0;
+                            curr_bit <= 0;
+                        end
+                    end else begin
+                        if (curr_bit == W) begin    // parity_check bit state
+                            if (PAR == 1) tx <= parity_check;
+                            if (PAR == 2) tx <= ~parity_check;
+                            if (ins_clk == DIV - 1) begin
+                                curr_bit <= curr_bit + 1;
+                            end
+                        end else begin  // stop bit state
+                            tx <= 1;
+                            if (ins_clk == DIV - 1) begin
+                                busy <= 0;
+                            end
                         end
                     end
+                    // if (curr_bit == W && PAR != 0) begin    // parity_check bit state
+                    //     if (PAR == 1) tx <= parity_check;
+                    //     if (PAR == 2) tx <= ~parity_check;
+                    //     if (ins_clk == DIV - 1) begin
+                    //         curr_bit <= curr_bit + 1;
+                    //     end
+                    // end else if (curr_bit == W + 1 || (curr_bit == W && PAR == 0)) begin     // stop bit state
+                    //     tx <= 1;
+                    //     if (ins_clk == DIV - 1) begin
+                    //         busy <= 0;
+                    //     end
+                    // end
                 end else begin      // transmit message state
                     tx <= matrix[curr_row][curr_col][curr_bit];
                     parity_check <= parity_check ^ tx;
                     
                     if (ins_clk == DIV - 1) begin
                         // next bit
-                        if (curr_bit != W) begin
+                        if (curr_bit < W - 1) begin
                             curr_bit <= curr_bit + 1;
                         end else begin
                             if (curr_col != end_col) begin
                                 curr_col <= curr_col + 1;
                                 curr_bit <= 0;
-                            end else begin
+                            end else if (curr_row != end_row) begin
                                 curr_row <= curr_row + 1;
                                 curr_col <= start_col;
                                 curr_bit <= 0;
+                            end else begin
+                                curr_bit <= curr_bit + 1;   // curr_bit == W or curr_bit == W + 1
                             end
                         end
                     end

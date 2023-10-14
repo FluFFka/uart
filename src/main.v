@@ -9,7 +9,7 @@ module main #(
     input [0:1] col,
     input [3:0] action,
     output t_busy, output r_busy,
-    output [W-1:0] t_cell, output [W-1:0] r_cell    
+    output [W-1:0] t_cell, output [W-1:0] r_cell
 );
 
     wire x;
