@@ -109,23 +109,11 @@ module transmitter #(
                             end
                         end
                     end
-                    // if (curr_bit == W && PAR != 0) begin    // parity_check bit state
-                    //     if (PAR == 1) tx <= parity_check;
-                    //     if (PAR == 2) tx <= ~parity_check;
-                    //     if (ins_clk == DIV - 1) begin
-                    //         curr_bit <= curr_bit + 1;
-                    //     end
-                    // end else if (curr_bit == W + 1 || (curr_bit == W && PAR == 0)) begin     // stop bit state
-                    //     tx <= 1;
-                    //     if (ins_clk == DIV - 1) begin
-                    //         busy <= 0;
-                    //     end
-                    // end
                 end else begin      // transmit message state
                     tx <= matrix[curr_row][curr_col][curr_bit];
-                    parity_check <= parity_check ^ tx;
                     
                     if (ins_clk == DIV - 1) begin
+                        parity_check <= parity_check ^ tx;
                         // next bit
                         if (curr_bit < W - 1) begin
                             curr_bit <= curr_bit + 1;

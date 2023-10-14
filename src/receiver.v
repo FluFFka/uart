@@ -142,34 +142,6 @@ module receiver #(
                                 busy <= 0;  // stop bit state
                             end
                         end
-                        // if (curr_bit == W && PAR != 0) begin    // parity_check state
-                        //     if (is_msg_correct) begin
-                        //         if (action_was == 2) matrix[row][col] <= received[row][col];
-                        //         if (action_was == 3) begin
-                        //             matrix[row][0] <= received[row][0];
-                        //             matrix[row][1] <= received[row][1];
-                        //             matrix[row][2] <= received[row][2];
-                        //             matrix[row][3] <= received[row][3];
-                        //         end
-                        //         if (action_was == 4) begin
-                        //             matrix[0][col] <= received[0][col];
-                        //             matrix[1][col] <= received[1][col];
-                        //         end
-                        //         if (action_was == 5) begin
-                        //             matrix[0][0] <= received[0][0];
-                        //             matrix[0][1] <= received[0][1];
-                        //             matrix[0][2] <= received[0][2];
-                        //             matrix[0][3] <= received[0][3];
-                        //             matrix[1][0] <= received[1][0];
-                        //             matrix[1][1] <= received[1][1];
-                        //             matrix[1][2] <= received[1][2];
-                        //             matrix[1][3] <= received[1][3];
-                        //         end
-                        //     end
-                        //     curr_bit <= curr_bit + 1;
-                        // end else if (curr_bit == W + 1 || (curr_bit == W && PAR == 0)) begin    // stop bit state
-                        //     busy <= 0;
-                        // end
                     end else begin  // receive bit state
                         received[curr_row][curr_col][curr_bit] <= rx;
                         parity_check <= parity_check ^ rx;
